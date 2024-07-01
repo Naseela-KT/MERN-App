@@ -6,8 +6,8 @@ const authApi = axios.create({
   withCredentials: true,
 });
 
-const adminApi = axios.create({
-  baseURL: api.pwdBaseURL,
+const userApi = axios.create({
+  baseURL: api.userBaseURL,
   withCredentials: true,
 });
 
@@ -19,12 +19,12 @@ authApi.interceptors.request.use((api) => {
   return api;
 });
 
-export const userApiRequest = async (api) => {
+export const authApiRequest = async (api) => {
   const response = await authApi(api);
   return response.data;
 };
 
-export const pwdApiRequest = async (api) => {
-  const response = await adminApi(api);
+export const userApiRequest = async (api) => {
+  const response = await userApi(api);
   return response.data;
 };
