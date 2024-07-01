@@ -17,7 +17,7 @@ app.use(cors({
 }))
 
 
-app.use("/api/admin",adminRoutes)
+app.use("/api/auth",adminRoutes)
 
 const start=()=>{
     app.listen(PORT,()=>{
