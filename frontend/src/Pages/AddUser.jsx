@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
 import { userApiRequest } from "../config/axios";
 import { useNavigate } from "react-router-dom";
+import { validate } from "../validations/AddValidation";
+
+const initialValues = {
+  name:"",
+  email: ""
+};
+
 
 const AddUser = () => {
   const [users, setUsers] = useState([]);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [formValues, setFormValues] = useState(initialValues);
+  const [formErrors, setFormErrors] = useState(initialValues);
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [formError, setFormError] = useState(""); // State to handle form errors
   const navigate = useNavigate();
@@ -15,11 +22,10 @@ const AddUser = () => {
     try {
       const response = await userApiRequest({
         method: "get",
-        url: `/`,
+        url: `/getusers`,
       });
       console.log(response);
       if (response.users) {
-        // Adjust based on the actual API response structure
         setUsers(response.users);
       }
     } catch (error) {
@@ -27,11 +33,7 @@ const AddUser = () => {
     }
   };
 
-  // Handle changes in the friends select box
-  // const handleFriendsChange = (event) => {
-  //   const selectedOptions = Array.from(event.target.selectedOptions, (option) => option.value);
-  //   setSelectedFriends(selectedOptions);
-  // };
+
   const handleCheckboxChange = (userId) => {
     setSelectedFriends((prevSelectedFriends) => {
       if (prevSelectedFriends.includes(userId)) {
@@ -42,42 +44,45 @@ const AddUser = () => {
     });
   };
 
-  // Handle form submission
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormValues({ ...formValues, [name]: value });
+    const errors = validate({ ...formValues, [name]: value });
+    setFormErrors((prevErrors) => ({ ...prevErrors, ...errors }));
+  };
+
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setFormError(""); // Clear any previous errors
-
-    // Validate form input
-    if (!name || !email) {
-      setFormError("Please fill in all required fields.");
-      return;
-    }
-
+    setFormError(""); 
+    const errors = validate(formValues);
+    setFormErrors(errors);
+    console.log(Object.values(errors));
+    if (Object.values(errors).every((error) => error === "")) {
     try {
       const response = await userApiRequest(
         {
           method: "post",
           url: `/add`,
           data: {
-            name,
-            email,
+            name:formValues.name,
+            email:formValues.email,
             friends: selectedFriends,
           },
         },
         { withCredentials: true }
       );
       console.log("User added:", response.data);
-      // Clear form fields after successful submission
-      setName("");
-      setEmail("");
+
+      
       setSelectedFriends([]);
       navigate("/");
-      // You can also add a success message or redirect here
+
     } catch (error) {
       console.error("Error adding user:", error);
-      setFormError("Error adding user. Please try again."); // Display error message
+      setFormError(error.response.data.message)
     }
-  };
+  }};
 
   useEffect(() => {
     fetchUsers();
@@ -99,13 +104,21 @@ const AddUser = () => {
               name="name"
               type="text"
               id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={formValues.name}
+              onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#020F3C]"
               placeholder="Enter name"
-              required
+          
             />
           </div>
+          {formErrors.name ? (
+          <p
+            className="text-sm"
+            style={{ color: "red", marginBottom: 10, marginTop: -10 }}
+          >
+            {formErrors.name}
+          </p>
+        ) : null}
           <div className="mb-4">
             <label
               htmlFor="email"
@@ -117,13 +130,21 @@ const AddUser = () => {
               name="email"
               type="email"
               id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formValues.email}
+              onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#020F3C]"
               placeholder="Enter email"
-              required
+             
             />
           </div>
+          {formErrors.email ? (
+          <p
+            className="text-sm"
+            style={{ color: "red", marginBottom: 10, marginTop: -10 }}
+          >
+            {formErrors.email}
+          </p>
+        ) : null}
           <div className="mb-4">
             <label
               htmlFor="friends"
@@ -132,7 +153,7 @@ const AddUser = () => {
               Friends
             </label>
             <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
-              {users.map((user) => (
+              {users.length>0?users.map((user) => (
                 <div key={user._id} className="flex items-center mb-2">
                   <input
                     type="checkbox"
@@ -144,7 +165,7 @@ const AddUser = () => {
                   />
                   <label htmlFor={`friend-${user._id}`} className="text-gray-700">{user.name}</label>
                 </div>
-              ))}
+              )):""}
             </div>
           </div>
           {formError && (

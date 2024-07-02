@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
 import { userApiRequest } from "../config/axios";
 import { useLocation, useNavigate } from "react-router-dom";
+import { validate } from "../validations/AddValidation";
+
+const initialValues = {
+  name:"",
+  email: ""
+};
 
 const EditUser = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const id = queryParams.get("id");
   const [users, setUsers] = useState([]);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [formValues, setFormValues] = useState(initialValues);
+  const [formErrors, setFormErrors] = useState(initialValues);
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [formError, setFormError] = useState(""); // State to handle form errors
   const navigate = useNavigate();
@@ -19,7 +25,7 @@ const EditUser = () => {
       const response = await userApiRequest(
         {
           method: "get",
-          url: "/",
+          url: "/getusers",
         },
         { withCredentials: true }
       );
@@ -43,14 +49,21 @@ const EditUser = () => {
       console.log(response);
       if (response.user) {
         // Set user details
-        setName(response.user.name);
-        setEmail(response.user.email);
+        setFormValues({name:response.user.name,email:response.user.email})
+
         // Pre-check checkboxes based on friends array
         setSelectedFriends(response.user.friends);
       }
     } catch (error) {
       console.error("Error fetching user:", error);
     }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormValues({ ...formValues, [name]: value });
+    const errors = validate({ ...formValues, [name]: value });
+    setFormErrors((prevErrors) => ({ ...prevErrors, ...errors }));
   };
 
   // Handle checkbox change
@@ -69,20 +82,14 @@ const EditUser = () => {
     event.preventDefault();
     setFormError(""); // Clear any previous errors
 
-    // Validate form input
-    if (!name || !email) {
-      setFormError("Please fill in all required fields.");
-      return;
-    }
-
     try {
       const response = await userApiRequest(
         {
           method: "put",
           url: `/edit?id=${id}`,
           data: {
-            name,
-            email,
+            name:formValues.name,
+            email:formValues.email,
             friends: selectedFriends,
           },
         },
@@ -90,8 +97,7 @@ const EditUser = () => {
       );
       console.log("User added:", response.data);
       // Clear form fields after successful submission
-      setName("");
-      setEmail("");
+      setFormValues(initialValues)
       setSelectedFriends([]);
       navigate("/");
       // You can also add a success message or redirect here
@@ -122,13 +128,21 @@ const EditUser = () => {
               name="name"
               type="text"
               id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={formValues.name}
+              onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#020F3C]"
               placeholder="Enter name"
               required
             />
           </div>
+          {formErrors.name ? (
+          <p
+            className="text-sm"
+            style={{ color: "red", marginBottom: 10, marginTop: -10 }}
+          >
+            {formErrors.name}
+          </p>
+        ) : null}
           <div className="mb-4">
             <label
               htmlFor="email"
@@ -140,13 +154,21 @@ const EditUser = () => {
               name="email"
               type="email"
               id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formValues.email}
+              onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#020F3C]"
               placeholder="Enter email"
               required
             />
           </div>
+          {formErrors.email ? (
+          <p
+            className="text-sm"
+            style={{ color: "red", marginBottom: 10, marginTop: -10 }}
+          >
+            {formErrors.email}
+          </p>
+        ) : null}
           <div className="mb-4">
             <label
               htmlFor="friends"
